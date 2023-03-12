@@ -10,9 +10,11 @@ Example of a traefik proxy with monitoring and logs active using:
 - traefik:2.9.8
 
 **Note:** This is not a production ready setup. Its missing the whole HTTPS, letsencript and non-root-docker part. It is just a example of how to use traefik with monitoring and logs with all the current versions of the used tools fitting well together (what was kind of a hassle 👼).
-## Installation
+
+## Installation and start
 
 - Clone this repo
+- Copy or rename the file ``example.env`` to ``.env``
 - Start the infrastructure and two sample apps
 
 ```shell
