@@ -1,0 +1,185 @@
+version: '3.7'
+
+x-logging: &loki-logging
+  driver: json-file
+  options:
+    tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"    
+
+services:
+
+  traefik:
+    # run as root, update to rootless mode later
+    user: "0:0"
+    hostname: traefik
+    container_name: traefik
+    image: traefik:2.9.8
+
+    command:
+      # exposes the traffic you might not want to expose. remove in production
+      - --log.level=DEBUG
+      - --log.filePath=/traefik/logs/traefik.log
+
+      - --entrypoints.http.address=:80
+      - --providers.docker=true
+      - --api=true
+
+      - --metrics.prometheus=true
+      - --metrics.prometheus.entryPoint=metrics
+      - --entryPoints.metrics.address=:8082
+      - --metrics.prometheus.buckets=0.1,0.3,1.2,5.0
+
+      - --accesslog=true
+      - --accesslog.filepath=/traefik/logs/access.log
+      - --accesslog.bufferingsize=100
+
+
+    labels:
+      - traefik.http.routers.traefik.rule=Host(`t.${DOCKER_ENV_DOMAIN}`)
+      - traefik.http.routers.traefik.middlewares=auth
+      - traefik.http.routers.traefik.service=api@internal
+
+      # credentials are admin:admin, change them!
+      - traefik.http.middlewares.auth.basicauth.users=admin:$$apr1$$gaS8tVEe$$MjqM8IlBvz2PRFEWcwha1/
+      - traefik.http.middlewares.auth.basicauth.removeheader=true
+    ports:
+      - 80:80
+    volumes:
+      - ./traefik/letsencrypt:/letsencrypt
+      - ./traefik/logs:/traefik/logs
+      #- ./traefik/traefik.toml:/etc/traefik/traefik.toml
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - traefiktointernet      
+      - internalnetwork
+    restart: unless-stopped
+    logging: *loki-logging      
+
+
+  prometheus:
+    # run as root, update to rootless mode later
+    user: "0:0"
+    hostname: prometheus
+    container_name: prometheus  
+    image: prom/prometheus:v2.37.6
+    depends_on:
+      - traefik    
+    volumes:
+      - ./traefik/prometheus/settings/:/etc/prometheus/
+      - ./traefik/prometheus/data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.size=256MB
+    labels:
+      - traefik.http.routers.prometheus.rule=Host(`p.${DOCKER_ENV_DOMAIN}`)
+      - traefik.http.routers.prometheus.service=prometheus
+      - traefik.http.routers.prometheus.middlewares=auth
+      - traefik.http.routers.prometheus.entrypoints=http            
+      - traefik.http.services.prometheus.loadbalancer.server.port=9090
+    networks:
+      - internalnetwork
+    restart: unless-stopped
+    logging: *loki-logging      
+
+
+  grafana:
+    # run as root, update to rootless mode later
+    user: "0:0"
+    hostname: grafana
+    container_name: grafana   
+    image: grafana/grafana:9.4.3
+    depends_on:
+      - traefik
+      - prometheus
+    volumes:
+      - ./traefik/grafana/data:/var/lib/grafana
+      - ./traefik/grafana/settings/:/etc/grafana/provisioning/
+    labels:
+      - traefik.http.routers.grafana.rule=Host(`g.${DOCKER_ENV_DOMAIN}`)
+      - traefik.http.routers.grafana.service=grafana
+      - traefik.http.routers.grafana.middlewares=auth
+      - traefik.http.services.grafana.loadbalancer.server.port=3000
+      - traefik.http.routers.grafana.entrypoints=http            
+    networks:
+      - internalnetwork
+    restart: unless-stopped
+    logging: *loki-logging      
+
+
+  loki:
+    # run as root, update to rootless mode later
+    user: "0:0"
+    hostname: loki  
+    container_name: loki
+    image: grafana/loki:2.7.4
+    command: -config.file=/mnt/config/loki-config.yml
+    restart: unless-stopped
+    volumes:
+      - ./traefik/loki/data:/loki
+      - ./traefik/loki/settings/loki-config.yml:/mnt/config/loki-config.yml
+    ports:
+      - 127.0.0.1:3100:3100
+    networks:
+      - internalnetwork
+    labels:
+      - traefik.http.routers.loki.rule=Host(`l.${DOCKER_ENV_DOMAIN}`)
+      - traefik.http.routers.loki.service=loki
+      - traefik.http.routers.loki.middlewares=auth
+      - traefik.http.services.loki.loadbalancer.server.port=3100
+      - traefik.http.routers.loki.entrypoints=http         
+    logging: *loki-logging        
+
+
+  promtail:
+    # run as root, update to rootless mode later
+    user: "0:0"
+    hostname: promtail  
+    container_name: promtail  
+    restart: unless-stopped    
+    image: grafana/promtail:2.7.4
+    volumes:
+      # logs for linux host only
+      #- /var/log:/host/log
+      - /var/lib/docker/containers:/host/containers
+      - ./traefik/promtail/settings/promtail-config.yaml:/mnt/config/promtail-config.yaml
+    command: -config.file /mnt/config/promtail-config.yaml
+    networks:
+      - internalnetwork
+    logging: *loki-logging        
+
+  nodeexporter:
+    image: prom/node-exporter:v1.5.0
+    container_name: nodeexporter
+    hostname: nodeexporter      
+    restart: unless-stopped
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    expose:
+      - 9100
+    networks:
+      - internalnetwork
+    logging: *loki-logging        
+
+
+
+networks:
+
+  traefiktointernet:
+    name: traefiktointernet
+    driver: bridge
+    internal: false
+    attachable: false
+
+  internalnetwork:
+    name: internalnetwork
+    driver: bridge
+    internal: true
+    attachable: true
+

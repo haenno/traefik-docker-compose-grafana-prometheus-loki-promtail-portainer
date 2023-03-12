@@ -1,0 +1,60 @@
+version: '3.7'
+
+
+x-logging: &loki-logging
+  driver: json-file
+  options:
+    tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"    
+
+
+services:
+
+  web1:
+    hostname: web1
+    container_name: web1
+    build: ./app1
+    ports:
+      - "5000:5000"
+    networks:
+      - internalnetwork
+    labels:
+      - traefik.http.routers.web1.rule=Host(`web1.${DOCKER_ENV_DOMAIN}`)
+      - traefik.http.routers.web1.entrypoints=http            
+      - traefik.http.services.web1.loadbalancer.server.port=5000
+    logging: *loki-logging  
+
+
+  redis1:
+    hostname: redis1
+    container_name: redis1
+    image: "redis:alpine"
+    networks:
+      - internalnetwork
+    logging: *loki-logging  
+
+  web2:
+    hostname: web2
+    container_name: web2
+    build: ./app2
+    ports:
+      - "5001:5001"
+    networks:
+      - internalnetwork
+    labels:
+      - traefik.http.routers.web2.rule=Host(`web2.${DOCKER_ENV_DOMAIN}`)
+      - traefik.http.routers.web2.entrypoints=http   
+      - traefik.http.services.web2.loadbalancer.server.port=5001
+    logging: *loki-logging  
+
+  redis2:
+    hostname: redis2
+    container_name: redis2
+    image: "redis:alpine"
+    networks:
+      - internalnetwork
+    logging: *loki-logging  
+
+networks:
+  internalnetwork:
+    name: internalnetwork
+    external: true
