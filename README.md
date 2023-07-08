@@ -8,6 +8,7 @@ Example of a traefik proxy with monitoring and logs active using:
 - grafana/grafana:9.4.3
 - prom/prometheus:v2.37.6
 - traefik:2.9.8
+- portainer/portainer-ce:2.18.3
 
 **Note:** This is not a production ready setup. Its missing the whole HTTPS, letsencript and non-root-docker part. It is just a example of how to use traefik with monitoring and logs with all the current versions of the used tools fitting well together (what was kind of a hassle 👼).
 

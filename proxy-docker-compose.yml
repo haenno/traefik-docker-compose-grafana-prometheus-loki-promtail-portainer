@@ -167,6 +167,30 @@ services:
       - internalnetwork
     logging: *loki-logging        
 
+portainer:
+    # run as root, update to rootless mode later
+    user: "0:0"
+    hostname: portainer
+    container_name: portainer
+    image: portainer/portainer-ce:2.18.3
+    depends_on:
+      - traefik
+    ports:
+      - 7007:9000
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./traefik/portainer/data:/data
+    labels:
+      - traefik.http.routers.portainer.rule=Host(`d.${DOCKER_ENV_DOMAIN}`)
+      - traefik.http.routers.portainer.service=portainer
+      #- traefik.http.routers.portainer.middlewares=auth # not working, disabled for now since portainer has its own auth
+      - traefik.http.services.portainer.loadbalancer.server.port=9000
+      - traefik.http.routers.portainer.entrypoints=http
+    networks:
+      - internalnetwork
+      - traefiktointernet
+    restart: unless-stopped
+    logging: *loki-logging
 
 
 networks:
