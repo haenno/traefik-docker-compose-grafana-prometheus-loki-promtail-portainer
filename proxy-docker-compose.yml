@@ -167,7 +167,7 @@ services:
       - internalnetwork
     logging: *loki-logging        
 
-portainer:
+  portainer:
     # run as root, update to rootless mode later
     user: "0:0"
     hostname: portainer
