@@ -2,13 +2,13 @@
 
 Example of a traefik proxy with monitoring and logs active using:
 
-- node-exporter:v1.5.0
-- grafana/promtail:2.7.4
-- grafana/loki:2.7.4
-- grafana/grafana:9.4.3
-- prom/prometheus:v2.37.6
-- traefik:2.9.8
-- portainer/portainer-ce:2.18.3
+- node-exporter:v1.6.1
+- grafana/promtail:2.9.0
+- grafana/loki:2.9.0
+- grafana/grafana:10.0.5
+- prom/prometheus:v2.47.0
+- traefik:2.10.4
+- portainer/portainer-ce:2.19.0
 
 **Note:** This is not a production ready setup. Its missing the whole HTTPS, letsencript and non-root-docker part. It is just a example of how to use traefik with monitoring and logs with all the current versions of the used tools fitting well together (what was kind of a hassle 👼).
 

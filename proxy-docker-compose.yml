@@ -12,7 +12,7 @@ services:
     user: "0:0"
     hostname: traefik
     container_name: traefik
-    image: traefik:2.9.8
+    image: traefik:2.10.4
 
     command:
       # exposes the traffic you might not want to expose. remove in production
@@ -58,7 +58,7 @@ services:
     user: "0:0"
     hostname: prometheus
     container_name: prometheus
-    image: prom/prometheus:v2.37.6
+    image: prom/prometheus:v2.47.0
     depends_on:
       - traefik
     volumes:
@@ -84,7 +84,7 @@ services:
     user: "0:0"
     hostname: grafana
     container_name: grafana
-    image: grafana/grafana:9.4.3
+    image: grafana/grafana:10.0.5
     depends_on:
       - traefik
       - prometheus
@@ -107,7 +107,7 @@ services:
     user: "0:0"
     hostname: loki
     container_name: loki
-    image: grafana/loki:2.7.4
+    image: grafana/loki:2.9.0
     command: -config.file=/mnt/config/loki-config.yml
     restart: unless-stopped
     volumes:
@@ -131,7 +131,7 @@ services:
     hostname: promtail
     container_name: promtail
     restart: unless-stopped
-    image: grafana/promtail:2.7.4
+    image: grafana/promtail:2.9.0
     volumes:
       # logs for linux host only
       #- /var/log:/host/log
@@ -143,7 +143,7 @@ services:
     logging: *loki-logging
 
   nodeexporter:
-    image: prom/node-exporter:v1.5.0
+    image: prom/node-exporter:v1.6.1
     container_name: nodeexporter
     hostname: nodeexporter
     restart: unless-stopped
