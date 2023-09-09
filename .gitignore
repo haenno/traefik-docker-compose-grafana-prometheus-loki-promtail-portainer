@@ -4,3 +4,4 @@
 /traefik/letsencrypt/*
 /traefik/logs/*
 .env
+/traefik/portainer/data/*

@@ -3,7 +3,7 @@ version: '3.7'
 x-logging: &loki-logging
   driver: json-file
   options:
-    tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"    
+    tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
 
 services:
 
@@ -32,7 +32,6 @@ services:
       - --accesslog.filepath=/traefik/logs/access.log
       - --accesslog.bufferingsize=100
 
-
     labels:
       - traefik.http.routers.traefik.rule=Host(`t.${DOCKER_ENV_DOMAIN}`)
       - traefik.http.routers.traefik.middlewares=auth
@@ -49,20 +48,19 @@ services:
       #- ./traefik/traefik.toml:/etc/traefik/traefik.toml
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
-      - traefiktointernet      
+      - traefiktointernet
       - internalnetwork
     restart: unless-stopped
-    logging: *loki-logging      
-
+    logging: *loki-logging
 
   prometheus:
     # run as root, update to rootless mode later
     user: "0:0"
     hostname: prometheus
-    container_name: prometheus  
+    container_name: prometheus
     image: prom/prometheus:v2.37.6
     depends_on:
-      - traefik    
+      - traefik
     volumes:
       - ./traefik/prometheus/settings/:/etc/prometheus/
       - ./traefik/prometheus/data:/prometheus
@@ -74,19 +72,18 @@ services:
       - traefik.http.routers.prometheus.rule=Host(`p.${DOCKER_ENV_DOMAIN}`)
       - traefik.http.routers.prometheus.service=prometheus
       - traefik.http.routers.prometheus.middlewares=auth
-      - traefik.http.routers.prometheus.entrypoints=http            
+      - traefik.http.routers.prometheus.entrypoints=http
       - traefik.http.services.prometheus.loadbalancer.server.port=9090
     networks:
       - internalnetwork
     restart: unless-stopped
-    logging: *loki-logging      
-
+    logging: *loki-logging
 
   grafana:
     # run as root, update to rootless mode later
     user: "0:0"
     hostname: grafana
-    container_name: grafana   
+    container_name: grafana
     image: grafana/grafana:9.4.3
     depends_on:
       - traefik
@@ -99,17 +96,16 @@ services:
       - traefik.http.routers.grafana.service=grafana
       - traefik.http.routers.grafana.middlewares=auth
       - traefik.http.services.grafana.loadbalancer.server.port=3000
-      - traefik.http.routers.grafana.entrypoints=http            
+      - traefik.http.routers.grafana.entrypoints=http
     networks:
       - internalnetwork
     restart: unless-stopped
-    logging: *loki-logging      
-
+    logging: *loki-logging
 
   loki:
     # run as root, update to rootless mode later
     user: "0:0"
-    hostname: loki  
+    hostname: loki
     container_name: loki
     image: grafana/loki:2.7.4
     command: -config.file=/mnt/config/loki-config.yml
@@ -126,16 +122,15 @@ services:
       - traefik.http.routers.loki.service=loki
       - traefik.http.routers.loki.middlewares=auth
       - traefik.http.services.loki.loadbalancer.server.port=3100
-      - traefik.http.routers.loki.entrypoints=http         
-    logging: *loki-logging        
-
+      - traefik.http.routers.loki.entrypoints=http
+    logging: *loki-logging
 
   promtail:
     # run as root, update to rootless mode later
     user: "0:0"
-    hostname: promtail  
-    container_name: promtail  
-    restart: unless-stopped    
+    hostname: promtail
+    container_name: promtail
+    restart: unless-stopped
     image: grafana/promtail:2.7.4
     volumes:
       # logs for linux host only
@@ -145,12 +140,12 @@ services:
     command: -config.file /mnt/config/promtail-config.yaml
     networks:
       - internalnetwork
-    logging: *loki-logging        
+    logging: *loki-logging
 
   nodeexporter:
     image: prom/node-exporter:v1.5.0
     container_name: nodeexporter
-    hostname: nodeexporter      
+    hostname: nodeexporter
     restart: unless-stopped
     volumes:
       - /proc:/host/proc:ro
@@ -165,14 +160,14 @@ services:
       - 9100
     networks:
       - internalnetwork
-    logging: *loki-logging        
+    logging: *loki-logging
 
   portainer:
     # run as root, update to rootless mode later
     user: "0:0"
     hostname: portainer
     container_name: portainer
-    image: portainer/portainer-ce:2.18.3
+    image: portainer/portainer-ce:2.19.0
     depends_on:
       - traefik
     ports:
@@ -188,10 +183,8 @@ services:
       - traefik.http.routers.portainer.entrypoints=http
     networks:
       - internalnetwork
-      - traefiktointernet
     restart: unless-stopped
     logging: *loki-logging
-
 
 networks:
 
@@ -206,4 +199,3 @@ networks:
     driver: bridge
     internal: true
     attachable: true
-
